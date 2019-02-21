@@ -1,11 +1,11 @@
 Package: TiNDA
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Tumor in Normal Detection Analysis
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Nagarajan Paramasivam
+Maintainer: Nagarajan Paramasivam <naga.rna@gmail.com>
+Description: The package to rescue somatic variants called as germline due to 
+   tumor DNA contamination in the patient's blood/control sample.
+License: MIT
 Encoding: UTF-8
 LazyData: true
