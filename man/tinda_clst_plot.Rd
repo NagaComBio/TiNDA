@@ -2,18 +2,22 @@
 % Please edit documentation in R/plot.R
 \name{tinda_clst_plot}
 \alias{tinda_clst_plot}
-\title{Plotting the  TiNDA indentified TiN clusters}
+\title{Plotting the  TiNDA identified TiN clusters}
 \usage{
 tinda_clst_plot(tinda_object, ...)
 }
 \arguments{
 \item{tinda_object}{Object returned by TiNDA function}
+
+\item{...}{ellipsis}
 }
 \description{
-Plotting the somatic resuced and germline clusters as classified by TiNDA
+Plotting the somatic rescued and germline clusters as classified by TiNDA
 }
 \examples{
-tinda <- TiNDA(coverage_object, sample_name = "sample_3", data_type = "WGS")
-tinda_clst_plot(tinda)
+data(hg19_length)
+vcf_like_df = TiNDA::generate_test_data(hg19_length)
+tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+tinda_clst_plot(tinda_test_object)
 
 }

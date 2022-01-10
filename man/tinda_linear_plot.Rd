@@ -4,24 +4,32 @@
 \alias{tinda_linear_plot}
 \title{Plotting linear genome}
 \usage{
-tinda_linear_plot(tinda_object, sample_af = "Tumor_AF",
-  chr.length = NULL, colorCol = "TiN_Class", ...)
+tinda_linear_plot(
+  tinda_object,
+  sample_af = "Tumor_AF",
+  chr_length = NULL,
+  colorCol = "TiN_Class",
+  ...
+)
 }
 \arguments{
 \item{tinda_object}{Object returned by TiNDA function}
 
 \item{sample_af}{sample AF column in the TiNDA data, Default: 'Tumor_AF'}
 
-\item{chr.length}{Data frame object of length of the chrs, if null hg19 chr length is used, Default: NULL'}
+\item{chr_length}{Data frame object of length of the chrs, if null hg19 chr length is used, Default: NULL'}
 
 \item{colorCol}{Name of column with the final TiNDA classification, categorical variable, Default: 'TiN_Class'}
+
+\item{...}{ellipsis}
 }
 \description{
 Function to plot choromosomes linerlly from TiNDA object
 }
 \examples{
-tinda <- TiNDA(coverage_object, sample_name = "sample_3", data_type = "WGS")
-plotGenome_ggplot(tinda)
-plotGenome_ggplot(tinda, sample_af = 'Control_AF')
+data(hg19_length)
+vcf_like_df = TiNDA::generate_test_data(hg19_length)
+tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+tinda_linear_plot(tinda_test_object)
 
 }

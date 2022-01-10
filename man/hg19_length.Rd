@@ -3,11 +3,13 @@
 \name{hg19_length}
 \alias{hg19_length}
 \title{Chromosome length}
-\format{A data frame with chr name and its length
+\format{
+A data frame with chromosome name and its length
 \itemize{
   \item CHR - chromosome name
   \item Length - Length of the chromosome
-}}
+}
+}
 \usage{
 data(hg19_length)
 }

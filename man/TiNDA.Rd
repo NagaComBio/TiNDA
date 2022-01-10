@@ -4,12 +4,19 @@
 \alias{TiNDA}
 \title{TiNDA function}
 \usage{
-TiNDA(tbl, sample_name = "pid_1", data_source = "WGS",
-  max_control_af = 0.45, min_tumor_af = 0.01,
-  min_clst_members = 0.85, num_run = 1, ...)
+TiNDA(
+  tbl,
+  sample_name = "pid_1",
+  data_source = "WGS",
+  max_control_af = 0.25,
+  min_tumor_af = 0.01,
+  min_clst_members = 0.85,
+  num_run = 1,
+  ...
+)
 }
 \arguments{
-\item{tbl}{A data frame object with rare germline variants with raw coverage infomation.}
+\item{tbl}{A data frame object with rare germline variants with the raw coverage information.}
 
 \item{sample_name}{Name of the sample for the title, Default: 'pid_1'}
 
@@ -17,21 +24,24 @@ TiNDA(tbl, sample_name = "pid_1", data_source = "WGS",
 
 \item{max_control_af}{Maximum control variant allele frequency (VAF), Default: 0.45}
 
-\item{min_tumor_af}{Minimum tumor varint allele frequency (VAF), Default: 0.01}
+\item{min_tumor_af}{Minimum tumor variant allele frequency (VAF), Default: 0.01}
 
 \item{min_clst_members}{Minimum number of members in the cluster to be below the max_control_af and above the min_tumor_af, Default: 0.85}
 
 \item{num_run}{For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1}
+
+\item{...}{ellipsis}
 }
 \description{
 The main TiNDA function to rescue somatic variants from contaminated samples. 
-Uses the EM-algorithm implemented in the Conopy R package.
+Uses the EM-algorithm implemented in the Canopy R package.
 It is recommend to use user's own local control database, 
 MAF generated from local samples analyzed by the same pipeline, 
-to filter our techincal artifacts specific to their pipeline.
+to filter our technical artifacts specific to their pipeline.
 }
 \examples{
-TiNDA(vcf_like_df, sample_name = "sample_1", data_type = "WES", max_control_af = 0.35)
-TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+data(hg19_length)
+vcf_like_df = TiNDA::generate_test_data(hg19_length)
+tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
 
 }

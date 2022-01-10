@@ -8,10 +8,16 @@ tinda_summary_plot(tinda_object, ...)
 }
 \arguments{
 \item{tinda_object}{Object returned by TiNDA function}
+
+\item{...}{ellipsis}
 }
 \description{
-A summary plot combines differnt TiNDA plots and TiNDA results
+A summary plot combines different TiNDA plots and TiNDA results
 }
 \examples{
-
+data(hg19_length)
+vcf_like_df = TiNDA::generate_test_data(hg19_length)
+tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+tinda_summary_plot(tinda_test_object)
+ 
 }

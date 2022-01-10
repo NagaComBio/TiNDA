@@ -1,33 +1,39 @@
 #' TiNDA function 
 #' 
 #' The main TiNDA function to rescue somatic variants from contaminated samples. 
-#' Uses the EM-algorithm implemented in the Conopy R package.
+#' Uses the EM-algorithm implemented in the Canopy R package.
 #' It is recommend to use user's own local control database, 
 #' MAF generated from local samples analyzed by the same pipeline, 
-#' to filter our techincal artifacts specific to their pipeline.
+#' to filter our technical artifacts specific to their pipeline.
 #' 
 #' 
-#' @param tbl A data frame object with rare germline variants with raw coverage infomation.
+#' @param tbl A data frame object with rare germline variants with the raw coverage information.
 #' @param sample_name Name of the sample for the title, Default: 'pid_1'
 #' @param data_source WGS or WES, Default: 'WGS'
 #' @param max_control_af Maximum control variant allele frequency (VAF), Default: 0.45
-#' @param min_tumor_af Minimum tumor varint allele frequency (VAF), Default: 0.01
+#' @param min_tumor_af Minimum tumor variant allele frequency (VAF), Default: 0.01
 #' @param min_clst_members Minimum number of members in the cluster to be below the max_control_af and above the min_tumor_af, Default: 0.85
 #' @param num_run For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1
+#' @param ... ellipsis
 #' 
-#' @examples 
-#' TiNDA(vcf_like_df, sample_name = "sample_1", data_type = "WES", max_control_af = 0.35)
-#' TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' @examples
+#' data(hg19_length)
+#' vcf_like_df = TiNDA::generate_test_data(hg19_length)
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
 #' 
+#' @importFrom stats median quantile rnorm
+#' @importFrom methods is
+#' @importFrom utils data
 #' @importFrom magrittr "%>%"
-#' @importFrom Canopy  canopy.cluster
+#' @importFrom Canopy canopy.cluster
 #' @import dplyr
+#' @import purrr
 #' 
 #' @export
 TiNDA <- function(tbl, 
                   sample_name = "pid_1",
                   data_source = "WGS",
-                  max_control_af = 0.45,
+                  max_control_af = 0.25,
                   min_tumor_af = 0.01,
                   min_clst_members = 0.85,
                   num_run = 1, ...) {
@@ -43,48 +49,61 @@ TiNDA <- function(tbl,
   }
   
   # Test tbl 
+  expected_col_names <- c('CHR', 'POS', 'Control_ALT_DP', 'Control_DP',
+                          'Tumor_ALT_DP', 'Tumor_DP')
+  if (!purrr::is_empty(setdiff(expected_col_names, colnames(tbl)))){
+    cat("Expected column names didn't appear in the input table\n")
+    cat("Expected:", expected_col_names, "\n")
+    stop()
+  }
+  
+  
   cat("Found ", dim(tbl)[1], " variants from the input data\n")
-  new_tbl <- tbl[tbl[,3] <= tbl[,4],]
-  new_tbl <- new_tbl[new_tbl[,5] <= new_tbl[,6],]
+  new_tbl <- tbl %>% 
+    filter(.data$Control_ALT_DP < .data$Control_DP,
+           .data$Tumor_ALT_DP < .data$Tumor_DP) -> new_tbl
+  
   if(dim(tbl)[1] == dim(new_tbl)[1]){
     rm(new_tbl)
   } else {
     num_removed <- dim(tbl)[1] - dim(new_tbl)[1]
-    cat(num_removed, "variants with alternate read depth more than total read depth were removed\n")
+    cat("Removed ", num_removed)
+    cat(" variants with ALT read depth more than total read depth\n")
     tbl = new_tbl
   }
-  # Variant AF 
-  tbl$Control_AF = tbl[,3]/tbl[,4]
-  tbl$Tumor_AF   = tbl[,5]/tbl[,6]
+  # Variant AF
+  tbl %>% 
+    mutate(Control_AF = .data$Control_ALT_DP/ .data$Control_DP,
+           Tumor_AF = .data$Tumor_ALT_DP/ .data$Tumor_DP) -> tbl
   
-  # Running Canopy ---------------------------------------------------------------
-  R <-as.matrix(tbl[,c(5,3)]) # Tumor read depth
-  X <-as.matrix(tbl[,c(6,4)]) # Control read depth
+  # Running Canopy -------------------------------------------------------------
+  R <-as.matrix(tbl[,c('Control_ALT_DP', 'Tumor_ALT_DP')])
+  X <-as.matrix(tbl[,c('Control_DP', 'Tumor_DP')])
 
-  print(head(R))
-  print(head(X))
   # Canopy run and assigning centers
   try(
-      canopy.clust <- canopy.cluster(R, X, num_cluster = numberCluster, 
-                               num_run = num_run, Mu.init = mu.init)
+      canopy.clust <- canopy.cluster(R, X, 
+                                     num_cluster = numberCluster, 
+                                     num_run = num_run, Mu.init = mu.init)
     )
   if(is.null(canopy.clust)){
-    stop("Failed canopy run\n", call. = F)
+    stop("Failed canopy run\n", call. = FALSE)
   }
   tbl$canopyCluster<-canopy.clust$sna_cluster
 
-  # Select the potential TiN clusters -------------------------------------------
+  # Select the potential TiN clusters ------------------------------------------
   potential_somatic_clst <- tbl %>%  
-    mutate(squareRescue = Control_AF < max_control_af & 
-             Tumor_AF > min_tumor_af) %>% 
-    mutate(diagonalRescue = Control_AF < Tumor_AF) %>% 
-    group_by(canopyCluster) %>%
-    dplyr::summarise(prop1 = mean(squareRescue == T), 
-                     prop2 = mean(diagonalRescue==T)) %>% 
-    filter(prop1 >  min_clst_members & 
-             prop2 > min_clst_members) %>% 
-    dplyr::select(canopyCluster) %>% 
-    collect() %>% .[[1]]
+    mutate(squareRescue = .data$Control_AF < max_control_af & 
+             .data$Tumor_AF > min_tumor_af) %>% 
+    mutate(diagonalRescue = .data$Control_AF < .data$Tumor_AF) %>% 
+    group_by(.data$canopyCluster) %>%
+    dplyr::summarise(prop1 = mean(.data$squareRescue == TRUE), 
+                     prop2 = mean(.data$diagonalRescue==TRUE)) %>% 
+    filter(.data$prop1 >  min_clst_members & 
+             .data$prop2 > min_clst_members) %>% 
+    dplyr::select(.data$canopyCluster) %>% 
+    collect() %>% pull(.data$canopyCluster)
+  print(potential_somatic_clst)
 
   # Removing unusual clusters ---------------------------------------------------
   # Usually occurs due to presence of variants in-between somatic and true germline clusters
@@ -101,36 +120,41 @@ TiNDA <- function(tbl,
     }
   }
 
-  # Rescuing the TiN homozygous cluster at the top-left corner ----------------------
+  # Rescuing the TiN homozygous cluster at the top-left corner -----------------
   if(length(potential_somatic_clst) != 0) {
     # Finding the top most cluster in TiN rescue region
-    tbl %>% group_by(canopyCluster) %>% 
-        summarise(max_C = max(Control_AF), 
-                  med_T = quantile(Tumor_AF, 0.80)) %>% 
-        filter(canopyCluster %in% potential_somatic_clst ) %>%
-        filter(med_T == max(med_T)) -> homo.threshold
+    tbl %>% group_by(.data$canopyCluster) %>% 
+        summarise(max_C = max(.data$Control_AF), 
+                  med_T = quantile(.data$Tumor_AF, 0.80)) %>% 
+        filter(.data$canopyCluster %in% potential_somatic_clst ) %>%
+        filter(.data$med_T == max(.data$med_T)) -> homo.threshold
   
-    # Couting the total number of TiN variants if we rescue the homozygous variants we well
-    tbl %>% filter((Tumor_AF > homo.threshold$med_T & Control_AF < homo.threshold$max_C) | 
-                     canopyCluster %in% potential_somatic_clst) %>% 
+    # Counting the total number of TiN variants if we rescue the homozygous variants we well
+    tbl %>% filter((.data$Tumor_AF > homo.threshold$med_T & 
+                      .data$Control_AF < homo.threshold$max_C) | 
+                     .data$canopyCluster %in% potential_somatic_clst) %>% 
       nrow() -> TiN.homo.updated
     
     # Only the variants from Tin Clusters
-    tbl %>% filter(canopyCluster %in% potential_somatic_clst) %>% 
+    tbl %>% filter(.data$canopyCluster %in% potential_somatic_clst) %>% 
       nrow() -> TiN.not.homo.updated
   
     # The Rescued TiN should only add 10% more variants
     if(TiN.homo.updated <= (TiN.not.homo.updated + (TiN.not.homo.updated/10))) {
       tbl %>% 
-        mutate(TiN_Class = ifelse((Tumor_AF > homo.threshold$med_T & Control_AF < homo.threshold$max_C) | 
-                                    Control_AF == 0 | 
-                                  canopyCluster %in% potential_somatic_clst, "Somatic_Rescue", "Germline")) -> tbl
+        mutate(TiN_Class = ifelse((.data$Tumor_AF > homo.threshold$med_T &
+                                     .data$Control_AF < homo.threshold$max_C) | 
+                                    .data$Control_AF == 0 | 
+                                  .data$canopyCluster %in% potential_somatic_clst, 
+                                  "Somatic_Rescue", "Germline")) -> tbl
     } else {
-      tbl %>% mutate(TiN_Class = ifelse(Control_AF == 0 | 
-                                          canopyCluster %in% potential_somatic_clst, "Somatic_Rescue", "Germline")) -> tbl
+      tbl %>% mutate(TiN_Class = ifelse(.data$Control_AF == 0 | 
+                                          .data$canopyCluster %in% potential_somatic_clst, 
+                                        "Somatic_Rescue", "Germline")) -> tbl
     } 
   } else {
-    tbl %>% mutate(TiN_Class = ifelse(Control_AF == 0, "Somatic_Rescue", "Germline")) -> tbl
+    tbl %>% mutate(TiN_Class = ifelse(.data$Control_AF == 0, 
+                                      "Somatic_Rescue", "Germline")) -> tbl
   }
 
   tinda_object <- list(data=tbl, 

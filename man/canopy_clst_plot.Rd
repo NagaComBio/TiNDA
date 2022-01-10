@@ -8,13 +8,17 @@ canopy_clst_plot(tinda_object, ...)
 }
 \arguments{
 \item{tinda_object}{Object returned by TiNDA function}
+
+\item{...}{ellipsis}
 }
 \description{
 Using ggplot2, plots VAF from tumor and control, and colors the based on canopy cluster
 }
 \examples{
  
-tinda <- TiNDA(coverage_object, sample_name = "sample_3", data_type = "WGS")
-canopy_clst_plot(tinda)
+data(hg19_length)
+vcf_like_df = TiNDA::generate_test_data(hg19_length)
+tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+canopy_clst_plot(tinda_test_object)
 
 }
