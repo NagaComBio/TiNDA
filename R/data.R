@@ -32,17 +32,21 @@ simulate_variants <- function(chr,
                               chr_len, 
                               avg_control_cov = 70, 
                               avg_tumor_cov = 70,
+                              avg_chip_cov = 70,
                               avg_germline_MAF = 0.50,
                               avg_somatic_tumor_MAF = 0.40,
                               avg_somatic_control_MAF = 0.03,
+                              avg_chip_control_MAF = 0.24,
+                              avg_chip_tumor_MAF = 0.05,
                               num_variants = 1000,
-                              per_somatic_variants = 0.10, ...){
-  
+                              per_somatic_variants = 0.10,
+                              per_chip_variants = 0.05, ...){
+
   total_variants = num_variants
   somatic_variants = num_variants * per_somatic_variants
-  germline_variants = num_variants - somatic_variants
+  chip_variants = num_variants * per_chip_variants
+  germline_variants = num_variants - (somatic_variants + chip_variants)
   
-  # 
   tumor_germ_dp = generate_depth(germline_variants, avg_depth = avg_tumor_cov)
   tumor_germ_alt_dp = generate_depth(germline_variants, 
                                      avg_depth = avg_tumor_cov * avg_germline_MAF)
@@ -59,13 +63,23 @@ simulate_variants <- function(chr,
   control_som_alt_dp = generate_depth(somatic_variants, 
                                       avg_depth = avg_control_cov * avg_somatic_control_MAF, 
                                       sd = 2)
+  
+  # Chip data
+  chip_germ_dp = generate_depth(chip_variants, avg_depth = avg_chip_cov)
+  chip_germ_alt_dp = generate_depth(chip_variants, 
+                                     avg_depth = avg_chip_cov * avg_chip_control_MAF)
+  
+  chip_som_dp = generate_depth(chip_variants, avg_depth = avg_chip_cov)
+  chip_som_alt_dp = generate_depth(chip_variants, 
+                                    avg_depth = avg_chip_cov * avg_chip_tumor_MAF)
+  
   # For a chromosome
   test_data_chr <- tibble(CHR = rep(chr, total_variants),
                           POS = sample.int(chr_len, total_variants),
-                          Control_ALT_DP = c(control_germ_alt_dp, control_som_alt_dp),
-                          Control_DP = c(control_germ_dp, control_som_dp),
-                          Tumor_ALT_DP = c(tumor_germ_alt_dp, tumor_som_alt_dp),
-                          Tumor_DP = c(tumor_germ_dp, tumor_som_dp)
+                          Control_ALT_DP = c(control_germ_alt_dp, control_som_alt_dp, chip_germ_alt_dp),
+                          Control_DP = c(control_germ_dp, control_som_dp, chip_germ_dp),
+                          Tumor_ALT_DP = c(tumor_germ_alt_dp, tumor_som_alt_dp, chip_som_alt_dp),
+                          Tumor_DP = c(tumor_germ_dp, tumor_som_dp, chip_som_dp)
                           )
   
   return(test_data_chr)
@@ -105,11 +119,11 @@ simulate_variants <- function(chr,
 #' 
 #' Simulate the test data generation for all the chromosomes
 #' @export
-generate_test_data <- function(chr_length_table, ...){
+generate_test_data <- function(chr_length_table, num_variants_per_chr = 1000, ...){
   chrs <- c(1:22, 'X', 'Y')
   test_data_all_chr <- lapply(chrs, function(x, ...){
     x_length = chr_length_table[chr_length_table$CHR == x,]$Length
-    simulate_variants(x, x_length, ...)
+    simulate_variants(x, x_length, num_variants = num_variants_per_chr, ...)
   })
   
   test_data_all_chr <- bind_rows(test_data_all_chr)

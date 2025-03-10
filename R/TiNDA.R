@@ -14,6 +14,9 @@
 #' @param min_tumor_af Minimum tumor variant allele frequency (VAF), Default: 0.01
 #' @param min_clst_members Minimum number of members in the cluster to be below the max_control_af and above the min_tumor_af, Default: 0.85
 #' @param num_run For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1
+#' @param min_control_af_chip Minimum control variant allele frequency (VAF) for CHIP cluster, Default: 0.02
+#' @param max_control_af_chip Maximum control variant allele frequency (VAF) for CHIP cluster, Default: 0.35
+#' @param max_tumor_af_chip Maximum tumor variant allele frequency (VAF) for CHIP cluster, Default: 0.25
 #' @param ... ellipsis
 #' 
 #' @examples
@@ -36,16 +39,19 @@ TiNDA <- function(tbl,
                   max_control_af = 0.25,
                   min_tumor_af = 0.01,
                   min_clst_members = 0.85,
+                  min_control_af_chip = 0.02,
+                  max_control_af_chip = 0.40,
+                  max_tumor_af_chip = 0.25,
                   num_run = 1, ...) {
   
   if(data_source == "WGS") {
-    mu.init <- cbind(c(0.5, 0.95, 0.5,  0.5,  0.5,  0.5,  0.02, 0.02, 0.02, 0.02, 0.10), 
-                    c(0.5, 0.95, 0.25, 0.75, 0.95, 0.05, 0.30, 0.5,  0.95, 0.10, 0.10))
-    numberCluster <- 11
+    mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35), 
+                     c(0.5, 0.95, 0.15, 0.85, 0.20, 0.50, 0.85, 0.02, 0.02, 0.02))
+    numberCluster <- 10
   } else if(data_source == "WES") {
-    mu.init <- cbind(c(0.5, 0.02, 0.02, 0.1, 0.02), 
-                    c(0.5, 0.30, 0.5,  0.1, 0.10))
-    numberCluster <- 5
+    mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35), 
+                     c(0.5, 0.95, 0.15, 0.85, 0.20, 0.50, 0.85, 0.02, 0.02, 0.02))
+    numberCluster <- 10
   }
   
   # Test tbl 
@@ -94,7 +100,7 @@ TiNDA <- function(tbl,
   # Select the potential TiN clusters ------------------------------------------
   potential_somatic_clst <- tbl %>%  
     mutate(squareRescue = .data$Control_AF < max_control_af & 
-             .data$Tumor_AF > min_tumor_af) %>% 
+                          .data$Tumor_AF > min_tumor_af) %>% 
     mutate(diagonalRescue = .data$Control_AF < .data$Tumor_AF) %>% 
     group_by(.data$canopyCluster) %>%
     dplyr::summarise(prop1 = mean(.data$squareRescue == TRUE), 
@@ -103,8 +109,27 @@ TiNDA <- function(tbl,
              .data$prop2 > min_clst_members) %>% 
     dplyr::select(.data$canopyCluster) %>% 
     collect() %>% pull(.data$canopyCluster)
-  print(potential_somatic_clst)
-
+  
+  # Clonal hematopoiesis clusters ------------------------------------------
+  potential_chip_clst <- tbl %>%
+    mutate(squareRescue = .data$Control_AF > min_control_af_chip & 
+                          .data$Control_AF < max_control_af_chip & 
+                          .data$Tumor_AF < max_tumor_af_chip) %>% 
+    mutate(diagonalRescue = .data$Control_AF > .data$Tumor_AF) %>%
+    group_by(canopyCluster) %>%
+    dplyr::summarise(prop1 = mean(squareRescue == T),
+                    prop2 = mean(diagonalRescue==T)) %>% 
+    filter(.data$prop1 > min_clst_members & 
+             .data$prop2 > min_clst_members) %>%
+    dplyr::select(.data$canopyCluster) %>%
+    collect() %>% pull(.data$canopyCluster)
+  
+  # Potential germline clusters -----------------------------------------------
+  potential_germline_clst <- tbl %>%
+    filter(!.data$canopyCluster %in% c(potential_somatic_clst, potential_chip_clst)) %>%
+    dplyr::select(.data$canopyCluster) %>%
+    collect() %>% pull(.data$canopyCluster)
+  
   # Removing unusual clusters ---------------------------------------------------
   # Usually occurs due to presence of variants in-between somatic and true germline clusters
   for(cl in potential_somatic_clst){
@@ -156,6 +181,14 @@ TiNDA <- function(tbl,
     tbl %>% mutate(TiN_Class = ifelse(.data$Control_AF == 0, 
                                       "Somatic_Rescue", "Germline")) -> tbl
   }
+
+  # Annotating CHiP Clusters
+  if(length(potential_chip_clst) != 0){
+    tbl %>%
+    mutate(
+      TiN_Class = ifelse(.data$canopyCluster %in% potential_chip_clst & !grepl("Somatic_", TiN_Class), "CHIP", TiN_Class)
+    ) -> tbl
+}
 
   tinda_object <- list(data=tbl, 
                        min_tumor_af = min_tumor_af,

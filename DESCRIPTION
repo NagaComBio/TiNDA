@@ -1,7 +1,7 @@
 Package: TiNDA
 Type: Package
 Title: Tumor in Normal Detection Analysis
-Version: 0.1.0
+Version: 1.1.0
 Author: Nagarajan Paramasivam
 Maintainer: Nagarajan Paramasivam <n.paramasivam@dkfz.de>
 Description: The package to rescue somatic variants called as germline due to 
@@ -19,6 +19,8 @@ Imports:
   gridExtra,
   grid,
   readr
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 URL: https://github.com/NagaComBio/TiNDA
 BugReports: https://github.com/NagaComBio/TiNDA/issues

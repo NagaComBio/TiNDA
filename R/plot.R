@@ -36,7 +36,7 @@ canopy_clst_plot <- function(tinda_object, ...){
   
   ggplot() + 
     geom_point(data=tbl, aes_string('Control_AF', 'Tumor_AF', color='canopyCluster'),
-               alpha=0.5) + 
+               alpha=0.2) + 
     geom_polygon(data=poly.df, aes_string('x', 'y'), alpha=0.2, fill="gold") + 
     theme_bw() + 
     theme(text = element_text(size=15), legend.position="bottom") + 
@@ -52,6 +52,8 @@ canopy_clst_plot <- function(tinda_object, ...){
 #' Plotting the somatic rescued and germline clusters as classified by TiNDA
 #' 
 #' @param tinda_object Object returned by TiNDA function
+#' @param colorCol Name of column with the final TiNDA classification, categorical variable, Default: 'TiN_Class'
+#' @param colorValues Color values for the TiNDA classification, Default: c("CHIP" = "#462d59",  "Germline" = "#c37e86", "Somatic_Rescue" = "#f9b380")
 #' @param ... ellipsis
 #' 
 #' @examples 
@@ -65,7 +67,11 @@ canopy_clst_plot <- function(tinda_object, ...){
 #' @export
 
 
-tinda_clst_plot <- function(tinda_object, ...){
+tinda_clst_plot <- function(tinda_object, 
+                            colorCol = 'TiN_Class',
+                            colorValues = c("CHIP" = "#462d59", 
+                                            "Germline" = "#c37e86",
+                                            "Somatic_Rescue" = "#f9b380"), ...){
   
   assert_class(tinda_object)
   
@@ -73,20 +79,17 @@ tinda_clst_plot <- function(tinda_object, ...){
   max_control_af <- tinda_object$max_control_af
   min_tumor_af <- tinda_object$min_tumor_af
   
-  poly.df <- data.frame(x=c(0, 0, max_control_af, max_control_af), 
-                        y=c(min_tumor_af, 1, 1, max_control_af))
-  
   ggplot() + 
-    geom_point(data=tbl, aes_string('Control_AF', 'Tumor_AF', color='TiN_Class'),
-               alpha=0.3) + 
-    geom_polygon(data=poly.df, aes_string('x', 'y'), alpha=0.2, fill="gold") + 
+    geom_point(data=tbl, aes_string(x = 'Control_AF', y = 'Tumor_AF', color=colorCol),
+               alpha=0.2) + 
     theme_bw() + 
     theme(text = element_text(size=15), legend.position="bottom") + 
     xlab("Control VAF") + 
     ylab("Tumor VAF") + 
     xlim(0,1) + ylim(0,1) +
     guides(color=guide_legend("TiN clusters")) + 
-    ggtitle(paste0("TiN clusters"))
+    ggtitle(paste0("TiN clusters")) + 
+    scale_color_manual(values = colorValues)
 }
 
 
@@ -98,6 +101,7 @@ tinda_clst_plot <- function(tinda_object, ...){
 #' @param sample_af sample AF column in the TiNDA data, Default: 'Tumor_AF'
 #' @param chr_length Data frame object of length of the chrs, if null hg19 chr length is used, Default: NULL'  
 #' @param colorCol Name of column with the final TiNDA classification, categorical variable, Default: 'TiN_Class'
+#' @param colorValues Color values for the TiNDA classification, Default: c("CHIP" = "#462d59",  "Germline" = "#c37e86", "Somatic_Rescue" = "#f9b380")
 #' @param ... ellipsis 
 #' 
 #' @examples 
@@ -113,12 +117,23 @@ tinda_clst_plot <- function(tinda_object, ...){
 tinda_linear_plot <- function(tinda_object, 
                               sample_af = 'Tumor_AF', 
                               chr_length = NULL, 
-                              colorCol = 'TiN_Class', ...) {
+                              colorCol = 'TiN_Class', 
+                              colorValues = c("CHIP" = "#462d59", 
+                                            "Germline" = "#c37e86",
+                                            "Somatic_Rescue" = "#f9b380"), ...) {
   assert_class(tinda_object)
   
   if(is.null(chr_length)){
     data("hg19_length")
     chr_length <- hg19_length
+  }
+
+  if(sample_af == 'Tumor_AF'){
+    ylab <- ylab("Tumor VAF")
+  } else if(sample_af == 'Control_AF'){
+    ylab <- ylab("Control VAF")
+  } else {
+    stop("sample_af should be either 'Tumor_AF' or 'Control_AF'")
   }
   
   chr_length$newShift<-c(0, chr_length$Length[-length(chr_length$Length)])
@@ -144,8 +159,11 @@ tinda_linear_plot <- function(tinda_object,
                          expand = c(0, 0)) + 
       theme(axis.title.x = element_blank(), text = element_text(size=15),
             panel.grid.major.x = element_line(color="lightgrey", linetype = 0),
-            panel.grid.minor.x = element_line(color="grey")) 
+            panel.grid.minor.x = element_line(color="grey")) +
+      ylab + 
+      scale_color_manual(values = colorValues)
 }
+
 
 #' TiNDA summary plot
 #' 
@@ -194,8 +212,8 @@ tinda_summary_plot <- function(tinda_object, ...){
   
   p1 <- canopy_clst_plot(tinda_object)
   p2 <- tinda_clst_plot(tinda_object)
-  p3 <- tinda_linear_plot(tinda_object)
-  p4 <- tinda_linear_plot(tinda_object, sample_af = 'Control_AF')
+  p3 <- tinda_linear_plot(tinda_object, sample_af = 'Control_AF')
+  p4 <- tinda_linear_plot(tinda_object)
   
   grid.arrange(p1, p2, TableAnn, p3, p4, 
                layout_matrix = PlotLayout,
