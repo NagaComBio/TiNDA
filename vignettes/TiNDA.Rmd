@@ -1,0 +1,121 @@
+---
+title: "TiNDA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{TiNDA}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+# Tumor in Normal Detection Analysis
+
+This is a R package to rescue somatic variants called as germline due to tumor DNA 
+contamination in the patient's blood/control sample. 
+
+TiNDA makes use of the Canopy's EM-cluster function to partition the variants 
+into different clusters. And uses following assumptions to define these clusters 
+into somatic and germline.
+
+Based on the following assumptions,
+
+1. the variant allele frequency (VAF) of somatic variants in tumor samples will 
+be higher than contaminated somatic variants in the control sample.
+2. the contamination exceeding certain threshold (`max_control_af: 0.25`) will be 
+difficult to separate from the germline VAF.
+
+a area of interest (AOI) is defined in the control vs tumor VAF 2D space. 
+And clusters with majority (`min_clst_members: 0.85`) of its members 
+within this AOI are defined as 'somatic rescue'.
+
+## Area of interest
+In the tumor VAF vs control VAF, the AOI is defined as,
+
+```{r}
+# To draw the AOI
+# Data frame for the area of rescue polygon
+max_control_af = 0.25
+min_tumor_af = 0.01
+poly.df <- data.frame(x=c(0, 0, max_control_af, max_control_af), 
+  y=c(min_tumor_af, 1, 1, max_control_af))
+poly.df
+
+# AOI for CHIP
+max_control_af_chip = 0.40
+min_control_af_chip = 0.02
+max_tumor_af_chip = 0.25
+
+poly.df <- data.frame(x=c(0.01, 0, min_control_af_chip, max_tumor_af_chip), 
+  y=c(0.01, max_tumor_af_chip, max_tumor_af_chip, max_tumor_af_chip))
+poly.df
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Plotting the AOI
+library(ggplot2)
+ggplot(poly.df) + 
+  geom_polygon(data=poly.df, aes_string('x', 'y'), alpha=0.2, fill="gold") + 
+  xlim(0,1) + 
+  ylim(0,1) + 
+  xlab('Control VAF') + 
+  ylab('Tumor VAF') + 
+  ggtitle("Area of interest for somatic rescue") + theme_bw()
+```
+
+## Input data format
+The input data for TiNDA is a data frame containing the following information/columns, 
+
+   * **CHR** - Chromosome name
+   * **POS** - Variant position
+   * **Control_ALT_DP** - Read depth of the variant's alternate allele in the control sample
+   * **Control_DP** - Total read depth of the variant in the control sample
+   * **Tumor_ALT_DP** - Read depth of the variant's alternate allele in the tumor sample
+   * **Tumor_DP** - Total read_depth of the variant in the tumor sample
+
+**Note:** Keep the column names in the input table.
+
+An example table,
+
+|CHR| POS | Control_ALT_DP | Control_DP | Tumor_ALT_DP | Tumor_DP
+|--|--:|--:|--:|--:|--:
+ 1 | 1039001 | 20 | 40 | 23 | 46
+ 1 | 2123023 | 12 | 32 | 14 | 23
+ 1 | 3343543 | 23 | 56 | 34 | 67
+
+## Generate a test data
+
+The following snippet will generate a data frame containing 1000 variants per 
+chromosome for the `hg19` reference genome.
+
+For the simulation,
+
+* By default 0.10 fraction of the variants will be somatic, which could be 
+adjusted with `per_somatic_variants`.
+* And average VAF of somatic variants (variants to be rescued) in the control 
+would be 0.03, so contamination is likely around (~6%). This could be adjusted
+with `avg_somatic_control_MAF`.
+* Number of variants per chromosome could be adjusted with `num_variants`
+
+## Example TiNDA analysis
+```{r}
+# Generate data to test the package
+library(TiNDA)
+data(hg19_length)
+test_df <- generate_test_data(hg19_length, num_variants = 500)
+
+# Run the TiNDA function
+tinda_object <- TiNDA(test_df)
+```
+
+## Plotting the results
+```{r}
+# Plot the results of the canopy cluster analysis
+canopy_clst_plot(tinda_object)
+
+# Plot the TiNDA cluster assignment
+tinda_clst_plot(tinda_object)
+
+# Plot the linear plot of the TiNDA results
+tinda_linear_plot(tinda_object)
+
+# Plot the summary of the TiNDA results - includes canopy clusters, TiNDA cluster assignment and linear plots
+tinda_summary_plot(tinda_object)
+```
