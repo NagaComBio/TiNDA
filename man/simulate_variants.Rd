@@ -9,11 +9,15 @@ simulate_variants(
   chr_len,
   avg_control_cov = 70,
   avg_tumor_cov = 70,
+  avg_chip_cov = 70,
   avg_germline_MAF = 0.5,
   avg_somatic_tumor_MAF = 0.4,
   avg_somatic_control_MAF = 0.03,
+  avg_chip_control_MAF = 0.24,
+  avg_chip_tumor_MAF = 0.05,
   num_variants = 1000,
   per_somatic_variants = 0.1,
+  per_chip_variants = 0.05,
   ...
 )
 }

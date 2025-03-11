@@ -23,7 +23,7 @@ CHR \tab POS \tab Control_ALT_DP \tab Control_DP \tab Tumor_ALT_DP \tab Tumor_DP
 }
 }
 \usage{
-generate_test_data(chr_length_table, ...)
+generate_test_data(chr_length_table, num_variants_per_chr = 1000, ...)
 }
 \arguments{
 \item{chr_length_table}{A data frame containing chromosome names and its length}

@@ -4,10 +4,19 @@
 \alias{tinda_clst_plot}
 \title{Plotting the  TiNDA identified TiN clusters}
 \usage{
-tinda_clst_plot(tinda_object, ...)
+tinda_clst_plot(
+  tinda_object,
+  colorCol = "TiN_Class",
+  colorValues = c(CHIP = "#462d59", Germline = "#c37e86", Somatic_Rescue = "#f9b380"),
+  ...
+)
 }
 \arguments{
 \item{tinda_object}{Object returned by TiNDA function}
+
+\item{colorCol}{Name of column with the final TiNDA classification, categorical variable, Default: 'TiN_Class'}
+
+\item{colorValues}{Color values for the TiNDA classification, Default: c("CHIP" = "#462d59",  "Germline" = "#c37e86", "Somatic_Rescue" = "#f9b380")}
 
 \item{...}{ellipsis}
 }

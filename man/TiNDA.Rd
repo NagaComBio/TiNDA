@@ -11,6 +11,9 @@ TiNDA(
   max_control_af = 0.25,
   min_tumor_af = 0.01,
   min_clst_members = 0.85,
+  min_control_af_chip = 0.02,
+  max_control_af_chip = 0.4,
+  max_tumor_af_chip = 0.25,
   num_run = 1,
   ...
 )
@@ -27,6 +30,12 @@ TiNDA(
 \item{min_tumor_af}{Minimum tumor variant allele frequency (VAF), Default: 0.01}
 
 \item{min_clst_members}{Minimum number of members in the cluster to be below the max_control_af and above the min_tumor_af, Default: 0.85}
+
+\item{min_control_af_chip}{Minimum control variant allele frequency (VAF) for CHIP cluster, Default: 0.02}
+
+\item{max_control_af_chip}{Maximum control variant allele frequency (VAF) for CHIP cluster, Default: 0.35}
+
+\item{max_tumor_af_chip}{Maximum tumor variant allele frequency (VAF) for CHIP cluster, Default: 0.25}
 
 \item{num_run}{For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1}
 

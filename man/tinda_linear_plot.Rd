@@ -9,6 +9,7 @@ tinda_linear_plot(
   sample_af = "Tumor_AF",
   chr_length = NULL,
   colorCol = "TiN_Class",
+  colorValues = c(CHIP = "#462d59", Germline = "#c37e86", Somatic_Rescue = "#f9b380"),
   ...
 )
 }
@@ -20,6 +21,8 @@ tinda_linear_plot(
 \item{chr_length}{Data frame object of length of the chrs, if null hg19 chr length is used, Default: NULL'}
 
 \item{colorCol}{Name of column with the final TiNDA classification, categorical variable, Default: 'TiN_Class'}
+
+\item{colorValues}{Color values for the TiNDA classification, Default: c("CHIP" = "#462d59",  "Germline" = "#c37e86", "Somatic_Rescue" = "#f9b380")}
 
 \item{...}{ellipsis}
 }
