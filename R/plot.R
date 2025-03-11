@@ -124,7 +124,6 @@ tinda_linear_plot <- function(tinda_object,
   assert_class(tinda_object)
   
   if(is.null(chr_length)){
-    data("hg19_length")
     chr_length <- hg19_length
   }
 
