@@ -17,6 +17,8 @@
 #' @param min_control_af_chip Minimum control variant allele frequency (VAF) for CHIP cluster, Default: 0.02
 #' @param max_control_af_chip Maximum control variant allele frequency (VAF) for CHIP cluster, Default: 0.35
 #' @param max_tumor_af_chip Maximum tumor variant allele frequency (VAF) for CHIP cluster, Default: 0.25
+#' @param find_chip Find CHIP clusters, Default: TRUE
+#' @param verbose Print the potential clusters, Default: FALSE
 #' @param ... ellipsis
 #' 
 #' @examples
@@ -42,7 +44,8 @@ TiNDA <- function(tbl,
                   min_control_af_chip = 0.02,
                   max_control_af_chip = 0.40,
                   max_tumor_af_chip = 0.25,
-                  num_run = 1, 
+                  num_run = 1,
+                  find_chip = TRUE,
                   verbose = FALSE, ...) {
   
   if(data_source == "WGS") {
@@ -122,27 +125,31 @@ TiNDA <- function(tbl,
   }
   
   # Clonal hematopoiesis clusters ------------------------------------------
-  potential_chip_clst_per <- tbl %>%
-    mutate(squareRescue = .data$Control_AF > min_control_af_chip & 
-                          .data$Control_AF < max_control_af_chip & 
-                          .data$Tumor_AF < max_tumor_af_chip) %>% 
-    mutate(diagonalRescue = .data$Control_AF > .data$Tumor_AF) %>%
-    group_by(canopyCluster) %>%
-    dplyr::summarise(prop1 = mean(squareRescue == T),
-                    prop2 = mean(diagonalRescue==T))
+  if(!find_chip){
+    potential_chip_clst <- c()
+  } else {
+    potential_chip_clst_per <- tbl %>%
+      mutate(squareRescue = .data$Control_AF > min_control_af_chip & 
+                            .data$Control_AF < max_control_af_chip & 
+                            .data$Tumor_AF < max_tumor_af_chip) %>% 
+      mutate(diagonalRescue = .data$Control_AF > .data$Tumor_AF) %>%
+      group_by(canopyCluster) %>%
+      dplyr::summarise(prop1 = mean(squareRescue == T),
+                      prop2 = mean(diagonalRescue==T))
 
-  potential_chip_clst <- potential_chip_clst_per %>%
-    filter(.data$prop1 > min_clst_members & 
-             .data$prop2 > min_clst_members) %>%
-    dplyr::select(.data$canopyCluster) %>%
-    collect() %>% pull(.data$canopyCluster)
-  
-   # in verbose mode, print the potential clusters
-  if(verbose){
-    cat("Potential CHIP clusters\n")
-    print(potential_chip_clst_per)
-    cat("Selected CHIP clusters\n")
-    print(potential_chip_clst)
+    potential_chip_clst <- potential_chip_clst_per %>%
+      filter(.data$prop1 > min_clst_members & 
+              .data$prop2 > min_clst_members) %>%
+      dplyr::select(.data$canopyCluster) %>%
+      collect() %>% pull(.data$canopyCluster)
+    
+    # in verbose mode, print the potential clusters
+    if(verbose){
+      cat("Potential CHIP clusters\n")
+      print(potential_chip_clst_per)
+      cat("Selected CHIP clusters\n")
+      print(potential_chip_clst)
+    }
   }
   
   # Potential germline clusters -----------------------------------------------

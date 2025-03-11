@@ -15,6 +15,7 @@ TiNDA(
   max_control_af_chip = 0.4,
   max_tumor_af_chip = 0.25,
   num_run = 1,
+  find_chip = TRUE,
   verbose = FALSE,
   ...
 )
@@ -39,6 +40,10 @@ TiNDA(
 \item{max_tumor_af_chip}{Maximum tumor variant allele frequency (VAF) for CHIP cluster, Default: 0.25}
 
 \item{num_run}{For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1}
+
+\item{find_chip}{Find CHIP clusters, Default: TRUE}
+
+\item{verbose}{Print the potential clusters, Default: FALSE}
 
 \item{...}{ellipsis}
 }
