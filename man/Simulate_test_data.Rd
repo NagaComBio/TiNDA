@@ -28,6 +28,8 @@ generate_test_data(chr_length_table, num_variants_per_chr = 1000, ...)
 \arguments{
 \item{chr_length_table}{A data frame containing chromosome names and its length}
 
+\item{num_variants_per_chr}{Number of variants to simulate per chromosome}
+
 \item{...}{ellipsis
 
 Simulate the test data generation for all the chromosomes}

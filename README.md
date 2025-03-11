@@ -39,9 +39,14 @@ devtools::install_github("nagacombio/tinda")
 
 ## Usage
 
-#### Input data format
+#### Workflow
+The TiNDA input consists of read counts for rare and private variants, including both germline and somatic variants. These variants should be identified through the joint analysis of tumor and control samples, and they must be filtered to remove common SNPs and technical artifacts. If the dataset is still too large and to expedite clustering and plotting, consider using only exonic variants.
+ 
+An ideal workflow with TiNDA:
 
-The input data consists of read counts of variants in both the control and tumor samples. **Important**: The variants must be prefiltered to remove SNPs and technical artifacts. Thus the final input will include all variants that are rare in the population, encompassing both somatic and rare germline variants. If the dataset is still too large and to expedite clustering and plotting, consider using only exonic variants.
+![TiNDA workflow](man/figures/tinda_flow.png)
+
+#### Input data format
 
 The input data for TiNDA is a data frame containing the following information/columns, 
 

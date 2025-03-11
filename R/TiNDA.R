@@ -42,7 +42,8 @@ TiNDA <- function(tbl,
                   min_control_af_chip = 0.02,
                   max_control_af_chip = 0.40,
                   max_tumor_af_chip = 0.25,
-                  num_run = 1, ...) {
+                  num_run = 1, 
+                  verbose = FALSE, ...) {
   
   if(data_source == "WGS") {
     mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35), 
@@ -98,31 +99,51 @@ TiNDA <- function(tbl,
   tbl$canopyCluster<-canopy.clust$sna_cluster
 
   # Select the potential TiN clusters ------------------------------------------
-  potential_somatic_clst <- tbl %>%  
+  potential_somatic_clst_per <- tbl %>%  
     mutate(squareRescue = .data$Control_AF < max_control_af & 
                           .data$Tumor_AF > min_tumor_af) %>% 
     mutate(diagonalRescue = .data$Control_AF < .data$Tumor_AF) %>% 
     group_by(.data$canopyCluster) %>%
     dplyr::summarise(prop1 = mean(.data$squareRescue == TRUE), 
-                     prop2 = mean(.data$diagonalRescue==TRUE)) %>% 
+                     prop2 = mean(.data$diagonalRescue==TRUE))
+
+  potential_somatic_clst <- potential_somatic_clst_per %>% 
     filter(.data$prop1 >  min_clst_members & 
              .data$prop2 > min_clst_members) %>% 
     dplyr::select(.data$canopyCluster) %>% 
     collect() %>% pull(.data$canopyCluster)
   
+    # in verbose mode, print the potential clusters
+  if(verbose){
+    cat("Potential somatic clusters\n")
+    print(potential_somatic_clst_per)
+    cat("Selected somatic clusters\n")
+    print(potential_somatic_clst)
+  }
+  
   # Clonal hematopoiesis clusters ------------------------------------------
-  potential_chip_clst <- tbl %>%
+  potential_chip_clst_per <- tbl %>%
     mutate(squareRescue = .data$Control_AF > min_control_af_chip & 
                           .data$Control_AF < max_control_af_chip & 
                           .data$Tumor_AF < max_tumor_af_chip) %>% 
     mutate(diagonalRescue = .data$Control_AF > .data$Tumor_AF) %>%
     group_by(canopyCluster) %>%
     dplyr::summarise(prop1 = mean(squareRescue == T),
-                    prop2 = mean(diagonalRescue==T)) %>% 
+                    prop2 = mean(diagonalRescue==T))
+
+  potential_chip_clst <- potential_chip_clst_per %>%
     filter(.data$prop1 > min_clst_members & 
              .data$prop2 > min_clst_members) %>%
     dplyr::select(.data$canopyCluster) %>%
     collect() %>% pull(.data$canopyCluster)
+  
+   # in verbose mode, print the potential clusters
+  if(verbose){
+    cat("Potential CHIP clusters\n")
+    print(potential_chip_clst_per)
+    cat("Selected CHIP clusters\n")
+    print(potential_chip_clst)
+  }
   
   # Potential germline clusters -----------------------------------------------
   potential_germline_clst <- tbl %>%
@@ -132,16 +153,23 @@ TiNDA <- function(tbl,
   
   # Removing unusual clusters ---------------------------------------------------
   # Usually occurs due to presence of variants in-between somatic and true germline clusters
-  for(cl in potential_somatic_clst){
-    cluster.size <- nrow(tbl[tbl$canopyCluster == cl,])
-    control.max.line <- tbl[tbl$canopyCluster == cl,][which.max(tbl[tbl$canopyCluster == cl,]$Control_AF),]
+  potential_somatic_clst_copy <- potential_somatic_clst
+
+  for (cl in potential_somatic_clst_copy) {
+    # Get the cluster size
+    cluster_size <- nrow(tbl[tbl$canopyCluster == cl, ])
+    
+    # Find the control line with the maximum Control_AF in the cluster
+    control_max_line <- tbl[tbl$canopyCluster == cl, ][which.max(tbl[tbl$canopyCluster == cl, ]$Control_AF), ]
+    # Count the number of mutations in other clusters that meet the criteria
+    count <- nrow(tbl[tbl$Control_AF <= control_max_line$Control_AF & 
+                        tbl$Tumor_AF > control_max_line$Tumor_AF & 
+                      !(tbl$canopyCluster %in% potential_somatic_clst), ])
   
-    count <- nrow(tbl[tbl$Control_AF <=  control.max.line$Control_AF & 
-                        tbl$Tumor_AF > control.max.line$Tumor_AF & 
-                        !(tbl$canopyCluster %in% potential_somatic_clst),])
-  
-    if(count > cluster.size/4){
-      potential_somatic_clst <- potential_somatic_clst[!potential_somatic_clst == cl]
+    
+    # Remove the cluster from the list if the count is greater than a quarter of the cluster size
+    if (count > cluster_size / 2) {
+      potential_somatic_clst <- potential_somatic_clst[!(potential_somatic_clst %in% cl)]
     }
   }
 

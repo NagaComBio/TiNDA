@@ -15,6 +15,7 @@ TiNDA(
   max_control_af_chip = 0.4,
   max_tumor_af_chip = 0.25,
   num_run = 1,
+  verbose = FALSE,
   ...
 )
 }

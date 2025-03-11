@@ -115,6 +115,7 @@ simulate_variants <- function(chr,
 #' @docType data
 #' 
 #' @param chr_length_table A data frame containing chromosome names and its length
+#' @param num_variants_per_chr Number of variants to simulate per chromosome
 #' @param ... ellipsis
 #' 
 #' Simulate the test data generation for all the chromosomes
@@ -131,7 +132,7 @@ generate_test_data <- function(chr_length_table, num_variants_per_chr = 1000, ..
   return(test_data_all_chr)
 }
 
-#' Chromosome length
+#' Chromosome length for hg19
 #' 
 #' Length of chromosomes for the linear TiNDA plots, default hg19. For used defined genomes, use the format below.
 #' 
@@ -139,6 +140,21 @@ generate_test_data <- function(chr_length_table, num_variants_per_chr = 1000, ..
 #' 
 #' @name hg19_length
 #' 
+#' @format A data frame with chromosome name and its length
+#' \itemize{
+#'   \item CHR - chromosome name
+#'   \item Length - Length of the chromosome
+#' }
+NULL
+
+#' Chromosome length for hg38
+#'
+#' Length of chromosomes for the linear TiNDA plots, hg38. For used defined genomes, use the format below.
+#'
+#' @usage data(hg38_length)
+#'
+#' @name hg38_length
+#'
 #' @format A data frame with chromosome name and its length
 #' \itemize{
 #'   \item CHR - chromosome name
