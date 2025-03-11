@@ -16,15 +16,19 @@ generate_depth = function(number_variants, avg_depth, sd = 5){
 #' @param chr_len chromosome length
 #' @param avg_control_cov Average coverage of the control sample
 #' @param avg_tumor_cov Average coverage of the tumor sample
-#' @param avg_germline_MAF Average minor allele frequency (MAF) of 
+#' @param avg_germline_VAF Average variant allele frequency (VAF) of 
 #' the germline variants
-#' @param avg_somatic_tumor_MAF Average MAF of the somatic variants 
+#' @param avg_somatic_tumor_VAF Average VAF of the somatic variants 
 #' in the tumor sample
-#' @param avg_somatic_control_MAF Average MAF of the somatic variants in 
+#' @param avg_somatic_control_VAF Average VAF of the somatic variants in 
 #' the control sample. This is the tumor in control (TiN) percentage, 
 #' increase or decrease to simulate the TiN ratio.
 #' @param num_variants Number of variants for a chromosome
 #' @param per_somatic_variants Percentage of the variants to be somatic among 
+#' @param per_chip_variants Percentage of the variants to be CHIP among
+#' @param avg_chip_cov Average coverage of the CHIP sample
+#' @param avg_chip_control_VAF Average VAF of the CHIP variants in the control sample
+#' @param avg_chip_tumor_VAF Average VAF of the CHIP variants in the tumor sample
 #' the total number of 'num_variants'
 #' @param ... ellipsis
 #' 
@@ -33,11 +37,11 @@ simulate_variants <- function(chr,
                               avg_control_cov = 70, 
                               avg_tumor_cov = 70,
                               avg_chip_cov = 70,
-                              avg_germline_MAF = 0.50,
-                              avg_somatic_tumor_MAF = 0.40,
-                              avg_somatic_control_MAF = 0.03,
-                              avg_chip_control_MAF = 0.24,
-                              avg_chip_tumor_MAF = 0.05,
+                              avg_germline_VAF = 0.50,
+                              avg_somatic_tumor_VAF = 0.40,
+                              avg_somatic_control_VAF = 0.03,
+                              avg_chip_control_VAF = 0.24,
+                              avg_chip_tumor_VAF = 0.05,
                               num_variants = 1000,
                               per_somatic_variants = 0.10,
                               per_chip_variants = 0.05, ...){
@@ -49,29 +53,29 @@ simulate_variants <- function(chr,
   
   tumor_germ_dp = generate_depth(germline_variants, avg_depth = avg_tumor_cov)
   tumor_germ_alt_dp = generate_depth(germline_variants, 
-                                     avg_depth = avg_tumor_cov * avg_germline_MAF)
+                                     avg_depth = avg_tumor_cov * avg_germline_VAF)
   
   tumor_som_dp = generate_depth(somatic_variants, avg_depth = avg_tumor_cov)
   tumor_som_alt_dp = generate_depth(somatic_variants, 
-                                    avg_depth = avg_tumor_cov * avg_somatic_tumor_MAF)
+                                    avg_depth = avg_tumor_cov * avg_somatic_tumor_VAF)
   
   control_germ_dp = generate_depth(germline_variants, avg_depth = avg_control_cov)
   control_germ_alt_dp = generate_depth(germline_variants, 
-                                       avg_depth = avg_control_cov * avg_germline_MAF)
+                                       avg_depth = avg_control_cov * avg_germline_VAF)
   
   control_som_dp = generate_depth(somatic_variants, avg_depth = avg_control_cov)
   control_som_alt_dp = generate_depth(somatic_variants, 
-                                      avg_depth = avg_control_cov * avg_somatic_control_MAF, 
+                                      avg_depth = avg_control_cov * avg_somatic_control_VAF, 
                                       sd = 2)
   
   # Chip data
   chip_germ_dp = generate_depth(chip_variants, avg_depth = avg_chip_cov)
   chip_germ_alt_dp = generate_depth(chip_variants, 
-                                     avg_depth = avg_chip_cov * avg_chip_control_MAF)
+                                     avg_depth = avg_chip_cov * avg_chip_control_VAF)
   
   chip_som_dp = generate_depth(chip_variants, avg_depth = avg_chip_cov)
   chip_som_alt_dp = generate_depth(chip_variants, 
-                                    avg_depth = avg_chip_cov * avg_chip_tumor_MAF)
+                                    avg_depth = avg_chip_cov * avg_chip_tumor_VAF)
   
   # For a chromosome
   test_data_chr <- tibble(CHR = rep(chr, total_variants),

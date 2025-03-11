@@ -10,11 +10,11 @@ simulate_variants(
   avg_control_cov = 70,
   avg_tumor_cov = 70,
   avg_chip_cov = 70,
-  avg_germline_MAF = 0.5,
-  avg_somatic_tumor_MAF = 0.4,
-  avg_somatic_control_MAF = 0.03,
-  avg_chip_control_MAF = 0.24,
-  avg_chip_tumor_MAF = 0.05,
+  avg_germline_VAF = 0.5,
+  avg_somatic_tumor_VAF = 0.4,
+  avg_somatic_control_VAF = 0.03,
+  avg_chip_control_VAF = 0.24,
+  avg_chip_tumor_VAF = 0.05,
   num_variants = 1000,
   per_somatic_variants = 0.1,
   per_chip_variants = 0.05,
@@ -30,20 +30,28 @@ simulate_variants(
 
 \item{avg_tumor_cov}{Average coverage of the tumor sample}
 
-\item{avg_germline_MAF}{Average minor allele frequency (MAF) of 
+\item{avg_chip_cov}{Average coverage of the CHIP sample}
+
+\item{avg_germline_VAF}{Average variant allele frequency (VAF) of 
 the germline variants}
 
-\item{avg_somatic_tumor_MAF}{Average MAF of the somatic variants 
+\item{avg_somatic_tumor_VAF}{Average VAF of the somatic variants 
 in the tumor sample}
 
-\item{avg_somatic_control_MAF}{Average MAF of the somatic variants in 
+\item{avg_somatic_control_VAF}{Average VAF of the somatic variants in 
 the control sample. This is the tumor in control (TiN) percentage, 
 increase or decrease to simulate the TiN ratio.}
 
+\item{avg_chip_control_VAF}{Average VAF of the CHIP variants in the control sample}
+
+\item{avg_chip_tumor_VAF}{Average VAF of the CHIP variants in the tumor sample
+the total number of 'num_variants'}
+
 \item{num_variants}{Number of variants for a chromosome}
 
-\item{per_somatic_variants}{Percentage of the variants to be somatic among 
-the total number of 'num_variants'}
+\item{per_somatic_variants}{Percentage of the variants to be somatic among}
+
+\item{per_chip_variants}{Percentage of the variants to be CHIP among}
 
 \item{...}{ellipsis}
 }
