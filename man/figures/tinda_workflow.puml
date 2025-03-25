@@ -1,0 +1,23 @@
+@startuml
+
+component "Tumor BAM" as tb
+component "Normal BAM" as nb
+component "Joint variant calling" as vc
+component "Population MAF and artifact frequency annotation" as va
+component "Filter for rare and private variants" as vf
+component "TiNDA classification" as tinda
+component "Somatic variants" as rs
+component "Germline variants" as g
+component "CHiP variants" as chip
+
+
+tb --> vc
+nb --> vc
+vc --> va
+va --> vf
+vf --> tinda
+tinda --> rs
+tinda --> g
+tinda --> chip
+
+@enduml
