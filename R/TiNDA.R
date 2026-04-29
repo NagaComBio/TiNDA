@@ -10,12 +10,12 @@
 #' @param tbl A data frame object with rare germline variants with the raw coverage information.
 #' @param sample_name Name of the sample for the title, Default: 'pid_1'
 #' @param data_source WGS or WES, Default: 'WGS'
-#' @param max_control_af Maximum control variant allele frequency (VAF), Default: 0.45
+#' @param max_control_af Maximum control variant allele frequency (VAF), Default: 0.25
 #' @param min_tumor_af Minimum tumor variant allele frequency (VAF), Default: 0.01
 #' @param min_clst_members Minimum number of members in the cluster to be below the max_control_af and above the min_tumor_af, Default: 0.85
 #' @param num_run For canopy cluster function, "number of EM runs for estimation for each specific number of clusters (to avoid EM being stuck in local optima)", Default: 1
 #' @param min_control_af_chip Minimum control variant allele frequency (VAF) for CHIP cluster, Default: 0.02
-#' @param max_control_af_chip Maximum control variant allele frequency (VAF) for CHIP cluster, Default: 0.35
+#' @param max_control_af_chip Maximum control variant allele frequency (VAF) for CHIP cluster, Default: 0.40
 #' @param max_tumor_af_chip Maximum tumor variant allele frequency (VAF) for CHIP cluster, Default: 0.25
 #' @param find_chip Find CHIP clusters, Default: TRUE
 #' @param verbose Print the potential clusters, Default: FALSE
@@ -24,7 +24,7 @@
 #' @examples
 #' data(hg19_length)
 #' vcf_like_df = TiNDA::generate_test_data(hg19_length)
-#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_source = "WGS")
 #' 
 #' @importFrom stats median quantile rnorm
 #' @importFrom methods is
@@ -35,7 +35,7 @@
 #' @import purrr
 #' 
 #' @export
-TiNDA <- function(tbl, 
+TiNDA <- function(tbl,
                   sample_name = "pid_1",
                   data_source = "WGS",
                   max_control_af = 0.25,
@@ -47,59 +47,78 @@ TiNDA <- function(tbl,
                   num_run = 1,
                   find_chip = TRUE,
                   verbose = FALSE, ...) {
-  
-  if(data_source == "WGS") {
-    mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35), 
-                     c(0.5, 0.95, 0.15, 0.85, 0.20, 0.50, 0.85, 0.02, 0.02, 0.02))
-    numberCluster <- 10
-  } else if(data_source == "WES") {
-    mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35), 
-                     c(0.5, 0.95, 0.15, 0.85, 0.20, 0.50, 0.85, 0.02, 0.02, 0.02))
-    numberCluster <- 10
+
+  # Input validation
+  if (!is.data.frame(tbl)) {
+    stop("tbl must be a data frame")
   }
-  
-  # Test tbl 
+
+  if (!data_source %in% c("WGS", "WES")) {
+    stop("data_source must be either 'WGS' or 'WES'")
+  }
+
   expected_col_names <- c('CHR', 'POS', 'Control_ALT_DP', 'Control_DP',
                           'Tumor_ALT_DP', 'Tumor_DP')
-  if (!purrr::is_empty(setdiff(expected_col_names, colnames(tbl)))){
-    cat("Expected column names didn't appear in the input table\n")
-    cat("Expected:", expected_col_names, "\n")
-    stop()
+  missing_cols <- setdiff(expected_col_names, colnames(tbl))
+  if (length(missing_cols) > 0) {
+    stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
   }
-  
-  
-  cat("Found ", dim(tbl)[1], " variants from the input data\n")
-  new_tbl <- tbl %>% 
-    filter(.data$Control_ALT_DP < .data$Control_DP,
-           .data$Tumor_ALT_DP < .data$Tumor_DP) -> new_tbl
-  
-  if(dim(tbl)[1] == dim(new_tbl)[1]){
-    rm(new_tbl)
-  } else {
-    num_removed <- dim(tbl)[1] - dim(new_tbl)[1]
-    cat("Removed ", num_removed)
-    cat(" variants with ALT read depth more than total read depth\n")
-    tbl = new_tbl
-  }
-  # Variant AF
-  tbl %>% 
-    mutate(Control_AF = .data$Control_ALT_DP/ .data$Control_DP,
-           Tumor_AF = .data$Tumor_ALT_DP/ .data$Tumor_DP) -> tbl
-  
-  # Running Canopy -------------------------------------------------------------
-  R <-as.matrix(tbl[,c('Control_ALT_DP', 'Tumor_ALT_DP')])
-  X <-as.matrix(tbl[,c('Control_DP', 'Tumor_DP')])
 
-  # Canopy run and assigning centers
-  try(
-      canopy.clust <- canopy.cluster(R, X, 
-                                     num_cluster = numberCluster, 
-                                     num_run = num_run, Mu.init = mu.init)
-    )
-  if(is.null(canopy.clust)){
-    stop("Failed canopy run\n", call. = FALSE)
+  if (nrow(tbl) == 0) {
+    stop("Input data frame is empty")
   }
-  tbl$canopyCluster<-canopy.clust$sna_cluster
+
+  if (any(tbl$Control_DP == 0)) {
+    warning("Found variants with zero control depth - these will be removed")
+  }
+  if (any(tbl$Tumor_DP == 0)) {
+    warning("Found variants with zero tumor depth - these will be removed")
+  }
+
+  # Set clustering parameters based on data source
+  mu.init <- cbind(c(0.5, 0.95, 0.50, 0.50, 0.02, 0.02, 0.02, 0.25, 0.15, 0.35),
+                   c(0.5, 0.95, 0.15, 0.85, 0.20, 0.50, 0.85, 0.02, 0.02, 0.02))
+  numberCluster <- 10
+
+  cat("Found ", nrow(tbl), " variants from the input data\n")
+
+  # Filter invalid depth values
+  new_tbl <- tbl %>%
+    filter(.data$Control_ALT_DP < .data$Control_DP,
+           .data$Tumor_ALT_DP < .data$Tumor_DP)
+
+  if (nrow(tbl) != nrow(new_tbl)) {
+    num_removed <- nrow(tbl) - nrow(new_tbl)
+    cat("Removed ", num_removed,
+        " variants with ALT read depth more than total read depth\n")
+    tbl <- new_tbl
+  }
+
+  # Calculate variant allele frequencies
+  tbl <- tbl %>%
+    mutate(Control_AF = .data$Control_ALT_DP / .data$Control_DP,
+           Tumor_AF = .data$Tumor_ALT_DP / .data$Tumor_DP)
+
+  # Running Canopy
+  R <- as.matrix(tbl[, c('Control_ALT_DP', 'Tumor_ALT_DP')])
+  X <- as.matrix(tbl[, c('Control_DP', 'Tumor_DP')])
+
+  # Canopy run with proper error handling
+  canopy.clust <- tryCatch(
+    canopy.cluster(R, X,
+                   num_cluster = numberCluster,
+                   num_run = num_run,
+                   Mu.init = mu.init),
+    error = function(e) {
+      stop("Canopy clustering failed: ", e$message, call. = FALSE)
+    }
+  )
+
+  if (is.null(canopy.clust$sna_cluster)) {
+    stop("Canopy clustering failed: no clusters were assigned\n", call. = FALSE)
+  }
+
+  tbl$canopyCluster <- canopy.clust$sna_cluster
 
   # Select the potential TiN clusters ------------------------------------------
   potential_somatic_clst_per <- tbl %>%  
@@ -225,13 +244,32 @@ TiNDA <- function(tbl,
     ) -> tbl
 }
 
-  tinda_object <- list(data=tbl, 
-                       min_tumor_af = min_tumor_af,
-                       max_control_af = max_control_af,
-                       number_cluster = numberCluster,
-                       sample_name = sample_name)
-  
-  class(tinda_object) <-'TiNDA'
-  
+  # Create classification summary
+  class_summary <- table(tbl$TiN_Class)
+
+  tinda_object <- list(
+    data = tbl,
+    sample_name = sample_name,
+    data_source = data_source,
+    max_control_af = max_control_af,
+    min_tumor_af = min_tumor_af,
+    number_cluster = numberCluster,
+    min_clst_members = min_clst_members,
+    find_chip = find_chip,
+    classification_summary = class_summary,
+    parameters = list(
+      max_control_af = max_control_af,
+      min_tumor_af = min_tumor_af,
+      min_clst_members = min_clst_members,
+      min_control_af_chip = min_control_af_chip,
+      max_control_af_chip = max_control_af_chip,
+      max_tumor_af_chip = max_tumor_af_chip,
+      num_run = num_run,
+      find_chip = find_chip
+    )
+  )
+
+  class(tinda_object) <- 'TiNDA'
+
   return(tinda_object)
 }
