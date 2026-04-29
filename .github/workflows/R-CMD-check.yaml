@@ -38,14 +38,22 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install Canopy and its dependencies from CRAN archive
+      - name: Install all dependencies manually
         run: |
-          Rscript -e "install.packages(c('ape', 'fields', 'pheatmap', 'scatterplot3d'), repos='https://cloud.r-project.org')"
-          Rscript -e "install.packages('http://cran.r-project.org/src/contrib/Archive/Canopy/Canopy_1.3.0.tar.gz', repos=NULL, type='source')"
+          # Install Canopy dependencies from CRAN
+          install.packages(c('ape', 'fields', 'pheatmap', 'scatterplot3d'), repos='https://cloud.r-project.org')
+          # Install Canopy from CRAN archive
+          install.packages('http://cran.r-project.org/src/contrib/Archive/Canopy/Canopy_1.3.0.tar.gz', repos=NULL, type='source')
+          # Install remaining package dependencies
+          install.packages(c('rcmdcheck', 'testthat', 'dplyr', 'ggplot2', 'magrittr', 'purrr', 'gridExtra', 'grid', 'readr'), repos='https://cloud.r-project.org')
+        shell: Rscript {0}
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck, any::testthat
+      - uses: r-lib/actions/check-r-package@v2
+
+      - name: Run tests
+        run: |
+          testthat::test_dir("tests/testthat")
+        shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@v2
 
