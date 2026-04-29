@@ -40,9 +40,13 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: rcmdcheck
+          extra-packages: any::rcmdcheck, any::testthat
 
       - uses: r-lib/actions/check-r-package@v2
+
+      - name: Run tests
+        run: |
+          Rscript -e "testthat::test_dir('tests/testthat')"
 
       - name: Show testthat output
         if: always()

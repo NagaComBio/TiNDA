@@ -1,6 +1,8 @@
   <!-- badges: start -->
   [![R build status](https://github.com/NagaComBio/TiNDA/workflows/R-CMD-check/badge.svg)](https://github.com/NagaComBio/TiNDA/actions)
+  [![CRAN version](https://www.r-pkg.org/badges/version/TiNDA)](https://cran.r-project.org/package=TiNDA)
   <!-- badges: end -->
+
 # TiNDA
 ## Tumor in Normal Detection Analysis
 
@@ -106,3 +108,54 @@ tinda_linear_plot(tinda_object)
 tinda_summary_plot(tinda_object)
 ```
 ![tinda_summary_plot](man/figures/tinda_summary_plot.png)
+
+---
+
+## Changelog
+
+### [1.2.0] - 2026-04-29
+
+#### Added
+- `get_tinda_params()`: Function to retrieve default parameters for WGS/WES analysis
+- `run_pipeline()`: Convenience function for file-based workflow (input → analysis → output)
+- `print.TiNDA()`: S3 print method for TiNDA objects
+- `summary.TiNDA()`: S3 summary method providing detailed classification statistics
+- Test infrastructure with testthat and 10+ basic tests
+- `inst/CITATION`: Citation file for publication credit
+
+#### Changed
+- Enhanced TiNDA object structure with `classification_summary` and `parameters` fields
+- Improved error messages for input validation (missing columns, invalid data types)
+
+#### Fixed
+- Documentation: `max_control_af` default value (0.45 → 0.25)
+- Documentation: `max_control_af_chip` default value (0.35 → 0.40)
+- Example code: `data_type` → `data_source` parameter name in all examples
+- Input validation: silent failures now throw informative errors
+
+#### Security
+- Added comprehensive input validation to prevent invalid data processing
+
+---
+
+### [1.1.0] - Previous Release
+
+#### Added
+- Initial release with core TiNDA analysis functionality
+- Canopy-based EM clustering for variant classification
+- Visualization functions: `canopy_clst_plot()`, `tinda_clst_plot()`, `tinda_linear_plot()`, `tinda_summary_plot()`
+- Data simulation functions: `generate_test_data()`, `simulate_variants()`, `generate_depth()`
+- Output function: `write_data()`
+- Support for hg19 and hg38 reference genomes
+
+---
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** version: Incompatible API changes
+- **MINOR** version: Backward-compatible new functionality
+- **PATCH** version: Backward-compatible bug fixes
+
+For the latest version information, check the GitHub releases page.
