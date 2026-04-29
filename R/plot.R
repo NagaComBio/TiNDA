@@ -1,6 +1,71 @@
 assert_class <- function(obj){
-  if(!is(obj, "TiNDA")) stop("The input object is not of class 'TiNDA'", 
+  if(!is(obj, "TiNDA")) stop("The input object is not of class 'TiNDA'",
                              call. = FALSE)
+}
+
+#' Print method for TiNDA objects
+#'
+#' @param x TiNDA object
+#' @param ... Additional arguments
+#'
+#' @export
+print.TiNDA <- function(x, ...) {
+  cat("TiNDA object:\n")
+  cat("  Sample:", x$sample_name, "\n")
+  cat("  Data source:", x$data_source, "\n")
+  cat("  Total variants:", nrow(x$data), "\n")
+  cat("\nClassification summary:\n")
+  print(table(x$data$TiN_Class))
+  cat("\nParameters:\n")
+  cat("  max_control_af:", x$max_control_af, "\n")
+  cat("  min_tumor_af:", x$min_tumor_af, "\n")
+  cat("  num_clusters:", x$number_cluster, "\n")
+  invisible(x)
+}
+
+#' Summary method for TiNDA objects
+#'
+#' @param object TiNDA object
+#' @param ... Additional arguments
+#'
+#' @export
+summary.TiNDA <- function(object, ...) {
+  tbl <- object$data
+  list(
+    sample_name = object$sample_name,
+    data_source = object$data_source,
+    total_variants = nrow(tbl),
+    classification = as.data.frame(table(tbl$TiN_Class)),
+    median_control_vaf = median(tbl$Control_AF),
+    median_tumor_vaf = median(tbl$Tumor_AF),
+    parameters = list(
+      max_control_af = object$max_control_af,
+      min_tumor_af = object$min_tumor_af,
+      num_clusters = object$number_cluster
+    )
+  )
+}
+
+#' Get default parameters for TiNDA
+#'
+#' @param data_source Data source type ('WGS' or 'WES')
+#'
+#' @export
+get_tinda_params <- function(data_source = "WGS") {
+  if (!data_source %in% c("WGS", "WES")) {
+    stop("data_source must be either 'WGS' or 'WES'")
+  }
+  list(
+    max_control_af = 0.25,
+    min_tumor_af = 0.01,
+    min_clst_members = 0.85,
+    min_control_af_chip = 0.02,
+    max_control_af_chip = 0.40,
+    max_tumor_af_chip = 0.25,
+    num_run = 1,
+    find_chip = TRUE,
+    data_source = data_source
+  )
 }
 
 
@@ -11,10 +76,10 @@ assert_class <- function(obj){
 #' @param tinda_object Object returned by TiNDA function
 #' @param ... ellipsis
 #' 
-#' @examples  
+#' @examples
 #' data(hg19_length)
 #' vcf_like_df = TiNDA::generate_test_data(hg19_length)
-#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_source = "WGS")
 #' canopy_clst_plot(tinda_test_object)
 #'
 #' @import ggplot2
@@ -59,7 +124,7 @@ canopy_clst_plot <- function(tinda_object, ...){
 #' @examples 
 #' data(hg19_length)
 #' vcf_like_df = TiNDA::generate_test_data(hg19_length)
-#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_source = "WGS")
 #' tinda_clst_plot(tinda_test_object)
 #' 
 #' @import ggplot2
@@ -107,7 +172,7 @@ tinda_clst_plot <- function(tinda_object,
 #' @examples 
 #' data(hg19_length)
 #' vcf_like_df = TiNDA::generate_test_data(hg19_length)
-#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_source = "WGS")
 #' tinda_linear_plot(tinda_test_object)
 #' 
 #' @import ggplot2
@@ -174,7 +239,7 @@ tinda_linear_plot <- function(tinda_object,
 #' @examples 
 #' data(hg19_length)
 #' vcf_like_df = TiNDA::generate_test_data(hg19_length)
-#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_type = "WGS")
+#' tinda_test_object <- TiNDA(vcf_like_df, sample_name = "sample_3", data_source = "WGS")
 #' tinda_summary_plot(tinda_test_object)
 #'  
 #' @importFrom gridExtra ttheme_default tableGrob grid.arrange 
