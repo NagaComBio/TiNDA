@@ -44,8 +44,8 @@ jobs:
           install.packages(c('ape', 'fields', 'pheatmap', 'scatterplot3d'), repos='https://cloud.r-project.org')
           # Install Canopy from CRAN archive
           install.packages('http://cran.r-project.org/src/contrib/Archive/Canopy/Canopy_1.3.0.tar.gz', repos=NULL, type='source')
-          # Install remaining package dependencies
-          install.packages(c('rcmdcheck', 'testthat', 'dplyr', 'ggplot2', 'magrittr', 'purrr', 'gridExtra', 'grid', 'readr'), repos='https://cloud.r-project.org')
+          # Install remaining package dependencies including knitr for vignettes
+          install.packages(c('rcmdcheck', 'testthat', 'dplyr', 'ggplot2', 'magrittr', 'purrr', 'gridExtra', 'grid', 'readr', 'knitr'), repos='https://cloud.r-project.org')
         shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@v2
