@@ -38,8 +38,9 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install Canopy from CRAN archive
+      - name: Install Canopy and its dependencies from CRAN archive
         run: |
+          Rscript -e "install.packages(c('ape', 'fields', 'pheatmap', 'scatterplot3d'), repos='https://cloud.r-project.org')"
           Rscript -e "install.packages('http://cran.r-project.org/src/contrib/Archive/Canopy/Canopy_1.3.0.tar.gz', repos=NULL, type='source')"
 
       - uses: r-lib/actions/setup-r-dependencies@v2
